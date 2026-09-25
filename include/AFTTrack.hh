@@ -1,35 +1,28 @@
 #ifndef AFT_TRACK_HH
 #define AFT_TRACK_HH
 
+#include <cstddef>
+#include <vector>
+
+#include "AFTHit.hh"
+
 class AFTTrack
 {
 public:
-  size_t GetNHits() const;
+  AFTTrack() = default;
 
-  int GetHitIndexFromStart(size_t i) const;
-  int GetHitIndexFromEnd(size_t i) const;
+  void AddHit(const AFTHit& hit);
+  void Clear();
 
-  const TVector3& GetStartPosition() const;
-  const TVector3& GetEndPosition() const;
+  const std::vector<AFTHit>& GetHits() const;
 
-  const TVector3& GetDirection() const;
-  const TVector3& GetXZDirection() const;
-  const TVector3& GetYZDirection() const;
+  const AFTHit& GetHit(std::size_t index) const;
+  const AFTHit& GetHitFromEnd(std::size_t index) const;
 
-  double GetLength() const;
-  double GetChi2() const;
+  std::size_t GetNHits() const;
 
 private:
-  std::vector<size_t> hitIndices_;
+  std::vector<AFTHit> hits_;
 
-  TVector3 startPosition_;
-  TVector3 endPosition_;
-
-  TVector3 direction_;
-  TVector3 xzDirection_;
-  TVector3 yzDirection_;
-
-  double length_;
-  double chi2_;
 };
 #endif

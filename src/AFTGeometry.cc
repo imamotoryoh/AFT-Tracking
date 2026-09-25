@@ -1,0 +1,229 @@
+#include "AFTGeometry.hh"
+
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+
+bool
+AFTGeometry::Load(const std::string& filename)
+{
+  std::ifstream fin(filename);
+
+  if(!fin.is_open()){
+    return false;
+  }
+  
+  fibers_.clear();
+
+  for(auto& type : fiberIndicesForEachLayerType_){
+    for(auto& layer : type){
+      layer.clear();
+    }    
+  }
+
+
+  std::string line;
+  int lineNumber = 0;
+
+  while(std::getline(fin, line)){
+    ++lineNumber;
+
+    const auto first = line.find_first_not_of(" \t\r\n");
+    if(first == std::string::npos || line[first] == '#'){
+      continue;
+    }
+
+    std::istringstream iss(line);
+
+    FiberGeometry fiber;
+    std::string typeName;
+    double cx, cy, cz;
+    double dx, dy, dz;
+
+    if(!(iss >> fiber.fiberID
+             >> fiber.planeID
+             >> fiber.globalLayerID
+             >> typeName
+             >> fiber.layerIndex
+             >> fiber.fiberIndex
+             >> cx >> cy >> cz
+             >> dx >> dy >> dz
+             >> fiber.length
+             >> fiber.radius)){
+      throw std::runtime_error(
+        "AFTGeometry::Load(): invalid format at line "
+        + std::to_string(lineNumber)
+      );
+    }
+
+    if(typeName == "X"){
+      fiber.layerType = AFTLayerType::X;
+    }
+    else if(typeName == "XP"){
+      fiber.layerType = AFTLayerType::XPrime;
+    }
+    else if(typeName == "Y"){
+      fiber.layerType = AFTLayerType::Y;
+    }
+    else if(typeName == "YP"){
+      fiber.layerType = AFTLayerType::YPrime;
+    }
+    else{
+      throw std::runtime_error(
+        "AFTGeometry::Load(): unknown layer type at line "
+        + std::to_string(lineNumber)
+      );
+    }
+
+    if(fiber.layerIndex < 0 ||
+       fiber.layerIndex >= static_cast<int>(NLayerPerType)){
+      throw std::runtime_error(
+        "AFTGeometry::Load(): invalid layerIndex at line "
+        + std::to_string(lineNumber)
+      );
+    }
+
+    fiber.center.SetXYZ(cx, cy, cz);
+    fiber.direction.SetXYZ(dx, dy, dz);
+
+    const std::size_t storageIndex = fibers_.size();
+    fibers_.push_back(fiber);
+
+    const auto typeIndex = LayerTypeToIndex(fiber.layerType);
+    fiberIndicesForEachLayerType_[typeIndex][fiber.layerIndex]
+      .push_back(storageIndex);
+  }
+
+  return true;
+
+}
+
+const FiberGeometry&
+AFTGeometry::GetFiber(int fiberID) const
+{
+  for(const auto& fiber : fibers_){
+    if(fiber.fiberID == fiberID){
+      return fiber;
+    }
+  }
+
+  throw std::out_of_range(
+			  "AFTGeometry::GetFiber() : invalid fiberID = "
+			  + std::to_string(fiberID)
+			  );  
+}
+
+const FiberGeometry&
+AFTGeometry::GetFiber(AFTLayerType type,
+		      int layerIndex,
+		      int fiberIndex) const
+{
+  const auto typeIndex = LayerTypeToIndex(type);
+
+  if(typeIndex >= NLayerTypes){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layer type"
+			    );
+  }
+
+  if(layerIndex < 0 || layerIndex >= static_cast<int>(NLayerPerType)){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layerIndex = "
+			    + std::to_string(layerIndex)
+			    );
+  }
+
+  const auto& indices =
+    fiberIndicesForEachLayerType_[typeIndex][layerIndex];
+
+  if(fiberIndex < 0 ||
+     fiberIndex >= static_cast<int>(indices.size())){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid fiberIndex = "
+			    + std::to_string(fiberIndex)
+			    );
+
+  }
+
+  const std::size_t fiberID = indices[fiberIndex];
+
+  return fibers_.at(fiberID);
+}
+
+std::size_t
+AFTGeometry::GetNFibers() const
+{
+  return fibers_.size();
+}
+
+std::size_t
+AFTGeometry::GetNFibers(AFTLayerType type,
+			int layerIndex) const
+{
+  const auto typeIndex = LayerTypeToIndex(type);
+
+  if(typeIndex >= NLayerTypes){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layer type "
+			    );
+  }
+
+  if(layerIndex < 0 || layerIndex >= static_cast<int>(NLayerPerType)){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layerIndex = "
+			    + std::to_string(layerIndex)
+			    );
+  }
+
+  return fiberIndicesForEachLayerType_[typeIndex][layerIndex].size();
+}
+
+const std::vector<std::size_t>&
+AFTGeometry::GetFiberIndices(AFTLayerType type,
+			     int layerIndex) const
+{
+  const auto typeIndex = LayerTypeToIndex(type);
+
+  if(typeIndex >= NLayerTypes){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layer type "
+			    );
+  }
+
+  if(layerIndex < 0 || layerIndex >= static_cast<int>(NLayerPerType)){
+    throw std::out_of_range(
+			    "AFTGetFiber() : invalid layerIndex = "
+			    + std::to_string(layerIndex)
+			    );
+  }
+
+  return fiberIndicesForEachLayerType_[typeIndex][layerIndex];
+}
+
+TVector3
+AFTGeometry::GetCenter(int fiberID) const
+{
+  return GetFiber(fiberID).center;
+}
+
+TVector3
+AFTGeometry::GetDirection(int fiberID) const
+{
+  return GetFiber(fiberID).direction;
+}
+
+TVector3
+AFTGeometry::GetCenter(AFTLayerType type,
+		       int layerIndex,
+		       int fiberIndex) const
+{    
+  return GetFiber(type,layerIndex,fiberIndex).center;
+}
+
+TVector3
+AFTGeometry::GetDirection(AFTLayerType type,
+			  int layerIndex,
+			  int fiberIndex) const
+{
+  return GetFiber(type,layerIndex,fiberIndex).direction;
+}

@@ -1,19 +1,28 @@
 #ifndef AFT_EVENT_HH
 #define AFT_EVENT_HH
 
+#include <cstddef>
+#include <vector>
+
+#include "AFTHit.hh"
+
 class AFTEvent
 {
 public:
-  int GetEvetID() const;
-  
-  const std::vector<AFTHit>& GetHits() const;
+  AFTEvent() = default;
 
   void AddHit(const AFTHit& hit);
   void Clear();
-  
+
+  const std::vector<AFTHit>& GetHits() const;
+
+  bool HasHit(int fiberID) const;
+  const AFTHit* FindHit(int fiberID) const;
+
+  std::size_t GetNHits() const;
+
 private:
-  int eventID_;
-  
   std::vector<AFTHit> hits_;
 };
+
 #endif

@@ -1,0 +1,37 @@
+#include "AFTTrack.hh"
+
+#include <stdexcept>
+
+void AFTTrack::AddHit(const AFTHit& hit)
+{
+  hits_.push_back(hit);
+}
+
+void AFTTrack::Clear()
+{
+  hits_.clear();
+}
+
+const std::vector<AFTHit>& AFTTrack::GetHits() const
+{
+  return hits_;
+}
+
+const AFTHit& AFTTrack::GetHit(std::size_t index) const
+{
+  return hits_.at(index);
+}
+
+const AFTHit& AFTTrack::GetHitFromEnd(std::size_t index) const
+{
+  if(index >= hits_.size()){
+    throw std::out_of_range("AFTTrack::GetHitFromEnd: index out of range");
+  }
+
+  return hits_[hits_.size() - 1 - index];
+}
+
+std::size_t AFTTrack::GetNHits() const
+{
+  return hits_.size();
+}

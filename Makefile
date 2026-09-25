@@ -1,0 +1,25 @@
+CXX      = g++
+CXXFLAGS = -Wall -Wextra -O2 -std=c++17 $(shell root-config --cflags)
+LDFLAGS  = $(shell root-config --libs)
+
+INCLUDE  = -Iinclude
+
+SOURCES = \
+	src/AFTGeometry.cc \
+	src/AFTEvent.cc \
+	src/AFTTrack.cc \
+	src/AFTEventReader.cc \
+	src/SimpleAFTTrackFinder.cc \
+	src/AFTEventDisplay.cc \
+	src/AFTTrackEvaluator.cc \
+	src/ProtonCalibrationTrackSelector.cc \
+	src/ProtonCalibrationAnalyzer.cc \
+	src/main_AFTTracking.cc
+
+TARGET = bin/AFTTracking
+
+$(TARGET): $(SOURCES)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(SOURCES) $(LDFLAGS) -o $(TARGET)
+
+clean:
+	rm -f $(TARGET)

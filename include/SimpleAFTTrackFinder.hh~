@@ -1,0 +1,112 @@
+#ifndef SIMPLE_AFT_TRACK_FINDER_HH
+#define SIMPLE_AFT_TRACK_FINDER_HH
+
+#include <vector>
+
+#include "AFTTrackFinder.hh"
+
+class SimpleAFTTrackFinder : public AFTTrackFinder
+{
+public:
+  struct Parameters
+  {
+    int maxSeedLayer = 2;
+    int maxMissingLayers = 1;
+
+    double baseWindow = 1.55;
+    double angleTolerance = 0.6;
+    double seedAngleTolerance = 1.2;
+  };
+
+  SimpleAFTTrackFinder() = default;
+
+  explicit SimpleAFTTrackFinder(const Parameters& parameters)
+    : parameters_(parameters)
+  {
+  }
+
+  std::vector<AFTTrackResult>
+  FindTracks(const AFTEvent& event,
+             const AFTGeometry& geometry) const override;
+
+  const Parameters& GetParameters() const
+  {
+    return parameters_;
+  }
+
+  void SetParameters(const Parameters& parameters)
+  {
+    parameters_ = parameters;
+  }
+
+private:
+  struct Layer
+  {
+    AFTLayerType type;
+    int index = -1;
+  };
+
+  struct Candidate
+  {
+    AFTTrack track;
+
+    int startLayer = -1;
+    int currentLayer = -1;
+
+    int consecutiveMissing = 0;
+    int totalMissing = 0;
+
+    double residual2 = 0.0;
+  };
+
+  std::vector<AFTTrackResult>
+  FindProjection(const AFTEvent& event,
+                 const AFTGeometry& geometry,
+                 AFTProjection projection) const;
+
+  std::vector<Candidate>
+  MakeSeeds(const AFTEvent& event,
+            const AFTGeometry& geometry,
+            AFTProjection projection) const;
+
+  std::vector<Candidate>
+  Extend(const Candidate& seed,
+         const AFTEvent& event,
+         const AFTGeometry& geometry,
+         AFTProjection projection) const;
+
+  std::vector<const AFTHit*>
+  CompatibleHits(int searchLayer,
+                 const AFTEvent& event,
+                 const AFTGeometry& geometry,
+                 AFTProjection projection,
+                 double predictedPosition,
+                 double window) const;
+
+  std::vector<Layer>
+  Layers(AFTProjection projection) const;
+
+  double Position(const AFTHit& hit,
+                  const AFTGeometry& geometry,
+                  AFTProjection projection) const;
+
+  double Z(const AFTHit& hit,
+           const AFTGeometry& geometry) const;
+
+  double Predict(const Candidate& candidate,
+                 double searchZ,
+                 const AFTGeometry& geometry,
+                 AFTProjection projection) const;
+
+  double Window(const Candidate& candidate,
+                double searchZ,
+                const AFTGeometry& geometry) const;
+
+  AFTTrackResult
+  Result(const Candidate& candidate,
+         AFTProjection projection) const;
+
+  Parameters parameters_;
+};
+
+#endif

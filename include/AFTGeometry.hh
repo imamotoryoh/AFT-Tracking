@@ -1,6 +1,13 @@
 #ifndef AFT_GEOMETRY_HH
 #define AFT_GEOMETRY_HH
 
+#include <array>
+#include <cstddef>
+#include <string>
+#include <vector>
+
+#include <TVector3.h>
+
 enum class AFTLayerType
   {
     X,
@@ -51,6 +58,12 @@ public:
   
   TVector3 GetCenter(int fiberID) const;
   TVector3 GetDirection(int fiberID) const;
+  TVector3 GetCenter(AFTLayerType type,
+		     int layerIndex,
+		     int fiberIndex) const;
+  TVector3 GetDirection(AFTLayerType type,
+			int layerIndex,
+			int fiberIndex) const;
 
 private:
   std::vector<FiberGeometry> fibers_;
@@ -61,7 +74,7 @@ private:
     NLayerPerType
       >,
     NLayerTypes
-    > fiberIndicesForEachlayerType_;
+    > fiberIndicesForEachLayerType_;
 
   static constexpr std::size_t
   LayerTypeToIndex(AFTLayerType type)

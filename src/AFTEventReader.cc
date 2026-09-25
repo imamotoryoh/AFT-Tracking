@@ -1,0 +1,207 @@
+#include "AFTEventReader.hh"
+
+#include <iostream>
+#include <chrono>
+
+#include <TFile.h>
+#include <TTree.h>
+
+AFTEventReader::AFTEventReader(
+    const AFTGeometry& geometry)
+  : geometry_(geometry)
+{
+  for(auto& layer : fiberLookup_){
+    layer.fill(nullptr);
+  }
+
+  for(std::size_t i=0; i< geometry_.GetNFibers(); ++i){    
+    const auto& fiber = geometry_.GetFiber(static_cast<int>(i));
+    fiberLookup_[fiber.globalLayerID][fiber.fiberIndex] = &fiber;
+  }  
+
+}
+
+AFTEventReader::~AFTEventReader()
+{
+  Close();
+}
+
+bool
+AFTEventReader::Open(
+    const std::string& filename,
+    const std::string& treeName)
+{
+  Close();
+
+  file_ =
+    TFile::Open(filename.c_str(),
+                "READ");
+
+  if(file_ == nullptr ||
+     file_->IsZombie()){
+
+    std::cerr
+      << "AFTEventReader::Open: "
+      << "cannot open file: "
+      << filename
+      << std::endl;
+
+    Close();
+    return false;
+  }
+
+  file_->GetObject(treeName.c_str(),
+                   tree_);
+
+  if(tree_ == nullptr){
+    std::cerr
+      << "AFTEventReader::Open: "
+      << "cannot find tree: "
+      << treeName
+      << std::endl;
+
+    Close();
+    return false;
+  }
+
+  if(tree_->GetBranch(
+       "aft_de_low_cut_inside") == nullptr){
+
+    std::cerr
+      << "AFTEventReader::Open: "
+      << "cannot find branch: "
+      << "aft_de_low_cut_inside"
+      << std::endl;
+
+    Close();
+    return false;
+  }
+
+  const int status =
+    tree_->SetBranchAddress(
+      "aft_de_low_cut_inside",
+      aft_de_low_cut_inside_);
+
+  if(status < 0){
+    std::cerr
+      << "AFTEventReader::Open: "
+      << "SetBranchAddress failed"
+      << std::endl;
+
+    Close();
+    return false;
+  }
+
+  return true;
+}
+
+void
+AFTEventReader::Close()
+{
+  tree_ = nullptr;
+
+  if(file_ != nullptr){
+    file_->Close();
+    delete file_;
+    file_ = nullptr;
+  }
+}
+
+Long64_t
+AFTEventReader::GetEntries() const
+{
+  if(tree_ == nullptr){
+    return 0;
+  }
+
+  return tree_->GetEntries();
+}
+
+bool
+AFTEventReader::GetEvent(
+    Long64_t entry,
+    AFTEvent& event)
+{
+  if(tree_ == nullptr){
+    return false;
+  }
+
+  if(entry < 0 ||
+     entry >= tree_->GetEntries()){
+    return false;
+  }
+
+  event.Clear();
+
+  const Long64_t bytes =
+    tree_->GetEntry(entry);
+
+  if(bytes <= 0){
+    return false;
+  }
+  // double DurationTime = 0.0;
+  // const auto start = std::chrono::steady_clock::now();
+  
+  for(int globalLayerID = 0;
+      globalLayerID < 36;
+      ++globalLayerID){
+
+    for(int fiberIndex = 0;
+        fiberIndex < 32;
+        ++fiberIndex){
+
+      const FiberGeometry* fiber = fiberLookup_[globalLayerID][fiberIndex];
+      if(fiber == nullptr){
+        continue;
+      }
+
+      const double energy =
+        aft_de_low_cut_inside_
+          [globalLayerID][fiberIndex];
+
+      // aft_de_low_cut_inside is already cut/calibrated.
+      // Only positive values are treated as valid hits.
+      if(!std::isfinite(energy)){ 
+        continue;
+      }
+
+      if(energy <= 0.0){ 
+        continue;
+      }
+
+      event.AddHit(
+        AFTHit(fiber->fiberID,
+               energy));
+    }
+  }
+  // const auto end = std::chrono::steady_clock::now();
+  // DurationTime = std::chrono::duration<double>(end - start).count();
+
+  // std::cout<< "GetEvent time = "<<DurationTime<<std::endl;
+  return true;
+}
+
+const FiberGeometry*
+AFTEventReader::FindFiber(
+    int globalLayerID,
+    int fiberIndex) const
+{
+  for(std::size_t i = 0;
+      i < geometry_.GetNFibers();
+      ++i){
+
+    const auto& fiber =
+      geometry_.GetFiber(
+        static_cast<int>(i));
+
+    if(fiber.globalLayerID ==
+         globalLayerID &&
+       fiber.fiberIndex ==
+         fiberIndex){
+
+      return &fiber;
+    }
+  }
+
+  return nullptr;
+}

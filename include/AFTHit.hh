@@ -4,14 +4,16 @@
 class AFTHit
 {
 public:
-  int GetFiberID() const;
-  double GetAdc() const;
-  double GetTime() const;
+  AFTHit(int fiberID, double energy)
+    : fiberID_(fiberID),
+      energy_(energy)
+  {}
+  
+  int GetFiberID() const {return fiberID_ ; }
+  double GetEnergy() const {return energy_; }
 private:
   int fiberID_;
-
-  double adc_;
-  double time_;
-};
+  double energy_; // with tot cut and time cut, calibrated by 1.8GeV/c Kaon
+}; 
 
 #endif
