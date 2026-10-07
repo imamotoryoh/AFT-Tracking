@@ -35,6 +35,19 @@ ProtonCalibrationAnalyzer(
       20.0
     );
 
+  hHitEnergyVsFiberID_ =
+    new TH2D(
+      "HitEnergyVsFiberID",
+      "no cut hit from track end;"
+      "Fiber ID;Energy",
+      864,
+      -0.5,
+      863.5,
+      400,
+      0.0,
+      20.0
+    );
+
   hFirstHitEnergyVsFiberID_ =
     new TH2D(
       "hFirstHitEnergyVsFiberID",
@@ -78,6 +91,26 @@ ProtonCalibrationAnalyzer(
   for(int layer = 0;
       layer < NGlobalLayers;
       ++layer){
+
+    hHitEnergyVsFiberIDForEachLayer_[layer] =
+      new TH2D(
+	       Form(
+		    "hHitEnergyVsFiberID_Layer%02d",
+		    layer
+		    ),
+	       Form(
+		    "no cut hit - Global Layer %d;"
+		    "Fiber ID;Energy",
+		    layer
+		    ),
+	       864,
+	       -0.5,
+	       863.5,
+	       400,
+	       0.0,
+	       20.0
+	       );
+
     
     hFirstHitEnergyVsFiberIDForEachLayer_[layer] =
       new TH2D(
@@ -136,6 +169,9 @@ ProtonCalibrationAnalyzer(
 	       20.0
 	       );
     
+    hHitEnergyVsFiberIDForEachLayer_[layer]->
+      SetDirectory(nullptr);
+
     hFirstHitEnergyVsFiberIDForEachLayer_[layer]->
       SetDirectory(nullptr);
     
@@ -154,7 +190,8 @@ ProtonCalibrationAnalyzer(
   }
 
   for(auto* hist :
-      {hFirstHitEnergyVsFiberID_,
+      {hHitEnergyVsFiberID_,
+       hFirstHitEnergyVsFiberID_,
        hSecondHitEnergyVsFiberID_,
        hThirdHitEnergyVsFiberID_}){
     hist->SetDirectory(nullptr);
@@ -168,6 +205,7 @@ ProtonCalibrationAnalyzer::
   delete hSecondHitEnergy_;
   delete hThirdHitEnergy_;
 
+  delete hHitEnergyVsFiberID_;
   delete hFirstHitEnergyVsFiberID_;
   delete hSecondHitEnergyVsFiberID_;
   delete hThirdHitEnergyVsFiberID_;
@@ -175,6 +213,8 @@ ProtonCalibrationAnalyzer::
   for(int layer = 0;
       layer < NGlobalLayers;
       ++layer){
+
+   delete hHitEnergyVsFiberIDForEachLayer_[layer];
     
    delete hFirstHitEnergyVsFiberIDForEachLayer_[layer];
     
@@ -239,6 +279,18 @@ void ProtonCalibrationAnalyzer::FillHit(
   
   const int globalLayerID =
     fiber.globalLayerID;
+
+  hHitEnergyVsFiberID_->Fill(
+			     fiberID,
+			     energy*calib_
+			     );
+  
+  hHitEnergyVsFiberIDForEachLayer_
+    [globalLayerID]->Fill(
+			  fiberID,
+			  energy*calib_
+			  );
+
   
   if(indexFromEnd == 0){
     hFirstHitEnergy_->Fill(
@@ -308,6 +360,7 @@ bool ProtonCalibrationAnalyzer::Write(
   hSecondHitEnergy_->Write();
   hThirdHitEnergy_->Write();
 
+  hHitEnergyVsFiberID_->Write();
   hFirstHitEnergyVsFiberID_->Write();
   hSecondHitEnergyVsFiberID_->Write();
   hThirdHitEnergyVsFiberID_->Write();
@@ -315,6 +368,9 @@ bool ProtonCalibrationAnalyzer::Write(
   for(int layer = 0;
       layer < NGlobalLayers;
       ++layer){
+
+    hHitEnergyVsFiberIDForEachLayer_[layer]->
+      Write();
     
     hFirstHitEnergyVsFiberIDForEachLayer_[layer]->
       Write();

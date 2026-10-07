@@ -29,8 +29,16 @@ main(int argc, char** argv)
   }
 
   const std::string geometryFile = argv[1];
-  const std::string inputFile = argv[2];
+  const std::string runnum = argv[2];
   const std::string treeName = argv[3];
+  std::string inputFile = "";
+  
+  if (treeName=="tree") {
+    inputFile = "../simu_root/"+runnum+"_simu_exp_format.root";
+  }else{
+    inputFile = "../root/"+runnum+"/"+runnum+"_Easiroc.root";
+  }
+  
 
   bool displayMode = false;
 
@@ -205,9 +213,9 @@ main(int argc, char** argv)
   evaluator.PrintSummary();
 
   const std::string outputFileEva =
-    "root/AFTTrackEvaluation.root";
+    "root/"+runnum+"_AFTTrackEvaluation.root";
   const std::string outputFileCal =
-    "root/AFTTrackCalibration" + treeName + ".root";
+    "root/"+runnum+"_AFTTrackCalibration" + treeName + ".root";
 
   if(!evaluator.Write(outputFileEva)){
     std::cerr

@@ -41,9 +41,13 @@ private:
   TH1D* hSecondHitEnergy_;
   TH1D* hThirdHitEnergy_;
 
+  TH2D* hHitEnergyVsFiberID_;
   TH2D* hFirstHitEnergyVsFiberID_;
   TH2D* hSecondHitEnergyVsFiberID_;
   TH2D* hThirdHitEnergyVsFiberID_;
+
+  std::array<TH2D*, NGlobalLayers>
+  hHitEnergyVsFiberIDForEachLayer_;
 
   std::array<TH2D*, NGlobalLayers>
   hFirstHitEnergyVsFiberIDForEachLayer_;
